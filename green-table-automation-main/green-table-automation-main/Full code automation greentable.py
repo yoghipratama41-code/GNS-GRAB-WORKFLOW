@@ -23,7 +23,7 @@ from googleapiclient.http import MediaFileUpload
 # ==========================================
 # 0. PAGE CONFIGURATION
 # ==========================================
-st.set_page_config(page_title="GNS Greentable & Gems Automator", page_icon="ðŸŸ¢", layout="wide")
+st.set_page_config(page_title="GNS Greentable & Gems Automator", layout="wide")
 
 SPREADSHEET_ID = "1FvJBZvtjKQ3QiZEHCOic2lZtegbuRK0wmsE6jCGTooc"
 TAB_MINGGUAN = "Bonus Mingguan_This week"
@@ -95,7 +95,7 @@ def upload_to_gsheets(df, tab_name):
     try:
         worksheet = sh.worksheet(tab_name)
     except gspread.exceptions.WorksheetNotFound:
-        st.error(f"âŒ Tab '{tab_name}' not found in the spreadsheet. Upload cancelled.")
+        st.error(f"Tab '{tab_name}' not found in the spreadsheet. Upload cancelled.")
         return False
 
     data_to_upload = [df.columns.values.tolist()] + df.fillna("").values.tolist()
@@ -265,7 +265,7 @@ def _call_with_retry(model, contents, nama_model_pendek, step_label, log, max_re
             err_msg = str(e)
             last_err = e
             if "429" in err_msg or "503" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
-                log(f"â³ [{nama_model_pendek}] {step_label}: rate limited, retry in {delay:.0f}s...")
+                log(f"[{nama_model_pendek}] {step_label}: rate limited, retry in {delay:.0f}s...")
                 time.sleep(delay + random.uniform(0, 2))
                 delay *= 2
             else:
@@ -301,9 +301,9 @@ def run_gemini_mingguan_fallback(image_path, api_key, log=st.write):
         model = genai.GenerativeModel(model_name)
         nama_model_pendek = model_name.split("/")[-1]
         try:
-            log(f"â³ [{nama_model_pendek}] Pass 1/2: Generate...")
+            log(f"[{nama_model_pendek}] Pass 1/2: Generate...")
             json_1 = _call_with_retry(model, [GEMINI_BM_PASS_1, img], nama_model_pendek, "Generate", log)
-            log(f"ðŸ” [{nama_model_pendek}] Pass 2/2: Checking...")
+            log(f"[{nama_model_pendek}] Pass 2/2: Checking...")
             json_2 = _call_with_retry(
                 model, [GEMINI_BM_PASS_2.replace("{JSON_SEBELUMNYA}", json_1), img],
                 nama_model_pendek, "Checking", log,
@@ -313,11 +313,11 @@ def run_gemini_mingguan_fallback(image_path, api_key, log=st.write):
             # --- VALIDASI STRUKTUR JSON ---
             validate_mingguan_json(result)
             
-            log(f"âœ… Succeeded with model **{nama_model_pendek}**.")
+            log(f"Succeeded with model **{nama_model_pendek}**.")
             return result
         except Exception as e:
             last_err = e
-            log(f"âš ï¸ [{nama_model_pendek}] failed validation/extraction ({e}), trying next model...")
+            log(f"[{nama_model_pendek}] failed validation/extraction ({e}), trying next model...")
             continue
     raise Exception(f"Weekly fallback failed on all models. Last error: {last_err}")
 
@@ -389,7 +389,7 @@ def validate_mingguan_extraction(bonus_mingguan, bonus_harian):
     return True
 
 def extract_mingguan(reader, image_path, api_key, log=st.write):
-    log("ðŸ”Ž [WEEKLY MODULE] Trying OCR (EasyOCR)...")
+    log("[WEEKLY MODULE] Trying OCR (EasyOCR)...")
     try:
         ocr_results = run_ocr(reader, image_path)
         part1_items = crop_to_part1(ocr_results)
@@ -405,14 +405,14 @@ def extract_mingguan(reader, image_path, api_key, log=st.write):
             "bonus": harian_raw["tier"]["bonus"],
         } if harian_raw["tier"] else None
         if validate_mingguan_extraction(bonus_mingguan, {"tier": bonus_harian} if bonus_harian else None):
-            log("âœ… OCR completed successfully.")
+            log("OCR completed successfully.")
             return bonus_mingguan, bonus_harian
         else:
-            log("âš ï¸ OCR incomplete, switching to Gemini...")
+            log("OCR incomplete, switching to Gemini...")
     except Exception as e:
-        log(f"âš ï¸ OCR failed ({e}), switching to Gemini...")
+        log(f"OCR failed ({e}), switching to Gemini...")
     if not api_key:
-        raise ValueError("OCR failed and the Gemini API Key has not been entered in the sidebar.")
+        raise ValueError("OCR failed and `GEMINI_API_KEY` is missing from secrets.")
     result = run_gemini_mingguan_fallback(image_path, api_key, log=log)
     return result.get("bonus_mingguan", []), result.get("bonus_harian", {})
 
@@ -461,14 +461,14 @@ def extract_peak_fare(image_path, api_key, year=TAHUN_SEKARANG, log=st.write):
     img = Image.open(image_path)
     pass_1, pass_2 = get_peak_prompts(year)
     last_err = None
-    log(f"ðŸ”Ž [TAMBANG PUNCAK MODULE] Starting extraction (Year: {year})")
+    log(f"[TAMBANG PUNCAK MODULE] Starting extraction (Year: {year})")
     for model_name in model_fallback_list:
         model = genai.GenerativeModel(model_name)
         nama_model_pendek = model_name.split("/")[-1]
         try:
-            log(f"â³ [{nama_model_pendek}] Pass 1/2: Generate...")
+            log(f"[{nama_model_pendek}] Pass 1/2: Generate...")
             json_1 = _call_with_retry(model, [pass_1, img], nama_model_pendek, "Generate", log)
-            log(f"ðŸ” [{nama_model_pendek}] Pass 2/2: Checking...")
+            log(f"[{nama_model_pendek}] Pass 2/2: Checking...")
             json_2 = _call_with_retry(
                 model, [pass_2.replace("{JSON_SEBELUMNYA}", json_1), img],
                 nama_model_pendek, "Checking", log,
@@ -478,11 +478,11 @@ def extract_peak_fare(image_path, api_key, year=TAHUN_SEKARANG, log=st.write):
             # --- VALIDASI STRUKTUR JSON ---
             validate_puncak_json(result)
             
-            log(f"âœ… Succeeded with model **{nama_model_pendek}**.")
+            log(f"Succeeded with model **{nama_model_pendek}**.")
             return result
         except Exception as e:
             last_err = e
-            log(f"âš ï¸ [{nama_model_pendek}] failed validation/extraction ({e}), trying next model...")
+            log(f"[{nama_model_pendek}] failed validation/extraction ({e}), trying next model...")
             continue
     raise Exception(f"Peak extraction failed on all models. Last error: {last_err}")
 
@@ -550,18 +550,18 @@ def compare_tempoh_tiers(tiers_this, tiers_last):
             )
             if same_dir:
                 d = "up" if (new_b + new_g) >= (old_b + old_g) else "down"
-                segs.append(f"bonus {d} ({t_last['biasa']}/{t_last['berganda']} â†’ {t_this['biasa']}/{t_this['berganda']})")
+                segs.append(f"bonus {d} ({t_last['biasa']}/{t_last['berganda']} → {t_this['biasa']}/{t_this['berganda']})")
             else:
                 bd = "up" if new_b > old_b else "down"
                 gd = "up" if new_g > old_g else "down"
-                segs.append(f"Biasa {bd} ({t_last['biasa']} â†’ {t_this['biasa']})")
-                segs.append(f"Berganda {gd} ({t_last['berganda']} â†’ {t_this['berganda']})")
+                segs.append(f"Biasa {bd} ({t_last['biasa']} → {t_this['biasa']})")
+                segs.append(f"Berganda {gd} ({t_last['berganda']} → {t_this['berganda']})")
         elif biasa_changed:
             d = "up" if to_number(t_this["biasa"]) > to_number(t_last["biasa"]) else "down"
-            segs.append(f"Biasa {d} ({t_last['biasa']} â†’ {t_this['biasa']})")
+            segs.append(f"Biasa {d} ({t_last['biasa']} → {t_this['biasa']})")
         elif berganda_changed:
             d = "up" if to_number(t_this["berganda"]) > to_number(t_last["berganda"]) else "down"
-            segs.append(f"Berganda {d} ({t_last['berganda']} â†’ {t_this['berganda']})")
+            segs.append(f"Berganda {d} ({t_last['berganda']} → {t_this['berganda']})")
 
         lines.append(f"{label}: " + ", ".join(segs) + ".")
 
@@ -575,7 +575,7 @@ def compare_bonus_harian(harian_this, harian_last):
     same_target = harian_this["jumlah_pesanan"] == harian_last["jumlah_pesanan"]
     same_bonus = harian_this["bonus"] == harian_last["bonus"]
     if same_target and same_bonus:
-        return False, f"No change â€” still {harian_this['bonus']} for {harian_this['jumlah_pesanan']} orders."
+        return False, f"No change — still {harian_this['bonus']} for {harian_this['jumlah_pesanan']} orders."
 
     segs = []
     if not same_target:
@@ -583,7 +583,7 @@ def compare_bonus_harian(harian_this, harian_last):
         segs.append(f"target {d} from {harian_last['jumlah_pesanan']} to {harian_this['jumlah_pesanan']} orders")
     if not same_bonus:
         d = "up" if to_number(harian_this["bonus"]) > to_number(harian_last["bonus"]) else "down"
-        segs.append(f"bonus {d} ({harian_last['bonus']} â†’ {harian_this['bonus']})")
+        segs.append(f"bonus {d} ({harian_last['bonus']} → {harian_this['bonus']})")
     text = ", ".join(segs)
     return True, text[0].upper() + text[1:] + "."
 
@@ -620,7 +620,7 @@ def compare_peak_fare(df_this, df_last):
             elif pd.isna(new_v):
                 entries.append(f"{hl}: removed (was {old_v * 100:.0f}%)")
             else:
-                entries.append(f"{hl}: {old_v * 100:.0f}% â†’ {new_v * 100:.0f}%")
+                entries.append(f"{hl}: {old_v * 100:.0f}% → {new_v * 100:.0f}%")
         lines.append(f"{day}: " + ", ".join(entries) + ".")
     return True, lines
 
@@ -631,7 +631,7 @@ def build_summary_lines(tempoh_results, harian_changed, puncak_changed):
     if not puncak_changed:
         lines.append("Peak Fare (Tambang Puncak) is fully unchanged this week.")
     else:
-        lines.append("Peak Fare (Tambang Puncak) has some changes this week â€” see details below.")
+        lines.append("Peak Fare (Tambang Puncak) has some changes this week — see details below.")
 
     changed_labels = [t["label"] for t in tempoh_results if t["changed"]]
     unchanged_labels = [t["label"] for t in tempoh_results if not t["changed"]]
@@ -641,13 +641,13 @@ def build_summary_lines(tempoh_results, harian_changed, puncak_changed):
         parts = []
         if unchanged_labels:
             parts.append(f"{', '.join(unchanged_labels)} unchanged")
-        parts.append(f"{', '.join(changed_labels)} has some tweaks â€” see details below")
+        parts.append(f"{', '.join(changed_labels)} has some tweaks — see details below")
         lines.append("Weekly Bonus (Bonus Mingguan): " + "; ".join(parts) + ".")
 
     if not harian_changed:
         lines.append("Everything else (Daily Bonus, Pick-up Distance Bonus, New Area Bonus, Ciri Slot Pilihan) stays the same.")
     else:
-        lines.append("Daily Bonus has changes this week â€” see details below. Pick-up Distance Bonus, New Area Bonus, and Ciri Slot Pilihan stay the same.")
+        lines.append("Daily Bonus has changes this week — see details below. Pick-up Distance Bonus, New Area Bonus, and Ciri Slot Pilihan stay the same.")
 
     return lines
 
@@ -665,14 +665,14 @@ def build_full_comparison_report(mingguan_this, harian_this, df_puncak_this,
 
         if last_period is None:
             tempoh_results.append({"label": label, "changed": True})
-            mingguan_detail_lines.append(f"   * {label} ({date_range}): New period this week â€” no prior data to compare.")
+            mingguan_detail_lines.append(f"   * {label} ({date_range}): New period this week — no prior data to compare.")
             continue
 
         tier_lines, changed = compare_tempoh_tiers(period["tiers"], last_period["tiers"])
         tempoh_results.append({"label": label, "changed": changed})
 
         if not changed:
-            mingguan_detail_lines.append(f"   * {label} ({date_range}): No change â€” same targets and payouts as last week's {label}.")
+            mingguan_detail_lines.append(f"   * {label} ({date_range}): No change — same targets and payouts as last week's {label}.")
         else:
             mingguan_detail_lines.append(f"   * {label} ({date_range}) vs last week's {label}:")
             for tl in tier_lines:
@@ -741,7 +741,7 @@ def analisis_dengan_ultimate_retry(model, prompt, gambar_list, max_retry=5):
             err_msg = str(e)
             if "429" in err_msg or "503" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
                 wait_time = delay + random.uniform(0, 5)
-                st.warning(f"âš ï¸ Server busy. Waiting {wait_time:.1f} seconds... (attempt {i+1}/{max_retry})")
+                st.warning(f"Server busy. Waiting {wait_time:.1f} seconds... (attempt {i+1}/{max_retry})")
                 time.sleep(wait_time)
                 delay *= 2
             else:
@@ -750,7 +750,7 @@ def analisis_dengan_ultimate_retry(model, prompt, gambar_list, max_retry=5):
 
 def extract_via_gemini_gems(image_path, api_key):
     if not api_key:
-        st.error("âš ï¸ Gemini API Key has not been entered in the sidebar.")
+        st.error("`GEMINI_API_KEY` is missing from secrets.")
         return [], [], None
     
     prompt = """Look at this screenshot of a delivery rider mission app.
@@ -777,18 +777,18 @@ Return ONLY a raw JSON object: {"date": "DD MMM YYYY", "gems": [g1, g2, g3], "re
                 ai_date = data.get("date", None)
                 
                 if len(gems) == 3 and len(rewards) == 3:
-                    st.write(f"âœ… AI extracted successfully with model **{nama_model_pendek}**.")
+                    st.write(f"AI extracted successfully with model **{nama_model_pendek}**.")
                     return gems, rewards, ai_date
                 else:
-                    st.warning(f"âš ï¸ [{nama_model_pendek}] JSON format incomplete, trying another model...")
+                    st.warning(f"[{nama_model_pendek}] JSON format incomplete, trying another model...")
                     continue
             except Exception as e:
-                st.warning(f"âš ï¸ [{nama_model_pendek}] failed ({e}), trying next model...")
+                st.warning(f"[{nama_model_pendek}] failed ({e}), trying next model...")
                 continue
                 
         return [], [], None
     except Exception as e:
-        st.error(f"âš ï¸ Error while processing AI: {e}")
+        st.error(f"Error while processing AI: {e}")
         return [], [], None
 
 def get_target_cells(tier, vehicle):
@@ -871,7 +871,7 @@ def push_to_google_slides(slide_id, tier, vehicle, processed_images_list, log_bo
         fileId=slide_id, body={'name': copy_name}
     ).execute()
     slide_id = copied_file.get('id')
-    log_box.write(f"ðŸ“„ New presentation copy created: **{copy_name}**")
+    log_box.write(f"New presentation copy created: **{copy_name}**")
     
     requests_body = []
     
@@ -918,7 +918,7 @@ def push_to_google_slides(slide_id, tier, vehicle, processed_images_list, log_bo
         if not placeholder_shape_text:
             continue
             
-        log_box.write(f"ðŸ“¤ Preparing & uploading the **{item['day']}** screenshot to the cloud server...")
+        log_box.write(f"Preparing & uploading the **{item['day']}** screenshot to the cloud server...")
         
         file_metadata = {'name': f"temp_slide_{day_str}.jpg", 'mimeType': 'image/jpeg'}
         media = MediaFileUpload(item['path'], mimetype='image/jpeg')
@@ -942,7 +942,7 @@ def push_to_google_slides(slide_id, tier, vehicle, processed_images_list, log_bo
         })
         
     if requests_body:
-        log_box.write("âš™ï¸ Updating text and inserting screenshots into the Google Slides copy...")
+        log_box.write("Updating text and inserting screenshots into the Google Slides copy...")
         slides_service.presentations().batchUpdate(
             presentationId=slide_id,
             body={'requests': requests_body}
@@ -953,20 +953,19 @@ def push_to_google_slides(slide_id, tier, vehicle, processed_images_list, log_bo
 # ==========================================
 # 6. MAIN UI (STREAMLIT APPS)
 # ==========================================
-st.title("ðŸŸ¢ GNS Greentable & Gems Automator")
+st.title("GNS Greentable & Gems Automator")
 st.caption("Driver incentive extraction automation & Google Sheets / Google Slides sync app.")
 
 try:
     sh = get_spreadsheet()
-    st.success(f"âœ… Connected to the main spreadsheet: **{sh.title}**")
+    st.success(f"Connected to the main spreadsheet: **{sh.title}**")
 except Exception as e:
-    st.error(f"âŒ Failed to connect to the spreadsheet. Check secrets `gcp_service_account`. Error: {e}")
+    st.error(f"Failed to connect to the spreadsheet. Check secrets `gcp_service_account`. Error: {e}")
     st.stop()
 
 reader = load_ocr_engine()
 
-st.sidebar.header("âš™ï¸ API Settings")
-gemini_api_key = st.sidebar.text_input("Gemini API Key (for fallback & Tambang Puncak & Gems)", type="password")
+gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
 st.sidebar.caption(f"Greentable target tabs:\n- `{TAB_MINGGUAN}`\n- `{TAB_PUNCAK}`")
 
 st.divider()
@@ -987,18 +986,18 @@ if uploaded_image is not None:
 st.divider()
 
 tab_mingguan, tab_puncak, tab_gems, tab_compare = st.tabs(
-    ["ðŸ“… Weekly & Daily Bonus", "â›°ï¸ Tambang Puncak", "ðŸ’Ž Gems Automator", "ðŸ”„ Compare This Week vs Last Week"]
+    ["Weekly & Daily Bonus", "Tambang Puncak", "Gems Automator", "Compare This Week vs Last Week"]
 )
 
 # ------------------------------------------
-# TAB 1 â€” WEEKLY & DAILY BONUS
+# TAB 1 — WEEKLY & DAILY BONUS
 # ------------------------------------------
 with tab_mingguan:
     st.subheader("Weekly Bonus & Daily Bonus")
     if image_path is None:
         st.info("Upload an image above first to start extraction.")
     else:
-        if st.button("ðŸš€ Run Extraction", key="run_mingguan"):
+        if st.button("Run Extraction", key="run_mingguan"):
             log_box = st.container()
             try:
                 bonus_mingguan, bonus_harian = extract_mingguan(
@@ -1006,56 +1005,56 @@ with tab_mingguan:
                 )
                 df_mingguan = build_sheet_rows_mingguan(bonus_mingguan, bonus_harian)
                 st.session_state["df_mingguan"] = df_mingguan
-                st.success(f"Extraction finished â€” {len(df_mingguan)} rows ready to upload.")
+                st.success(f"Extraction finished — {len(df_mingguan)} rows ready to upload.")
             except Exception as e:
-                st.error(f"âŒ Extraction failed: {e}")
+                st.error(f"Extraction failed: {e}")
 
         if "df_mingguan" in st.session_state:
             st.dataframe(st.session_state["df_mingguan"], use_container_width=True)
-            if st.button("ðŸ“¤ Upload to Google Sheets", key="upload_mingguan"):
+            if st.button("Upload to Google Sheets", key="upload_mingguan"):
                 ok = upload_to_gsheets(st.session_state["df_mingguan"], TAB_MINGGUAN)
                 if ok:
-                    st.success(f"ðŸŽ‰ {len(st.session_state['df_mingguan'])} rows sent to '{TAB_MINGGUAN}'.")
+                    st.success(f"{len(st.session_state['df_mingguan'])} rows sent to '{TAB_MINGGUAN}'.")
 
 # ------------------------------------------
-# TAB 2 â€” TAMBANG PUNCAK
+# TAB 2 — TAMBANG PUNCAK
 # ------------------------------------------
 with tab_puncak:
     st.subheader("Tambang Puncak (Peak Fare)")
     if image_path is None:
         st.info("Upload an image above first to start extraction.")
     elif not gemini_api_key:
-        st.warning("âš ï¸ This module uses Gemini Vision (2-pass) â€” enter the Gemini API Key in the sidebar first.")
+        st.warning("This module uses Gemini Vision (2-pass) — `GEMINI_API_KEY` is missing from secrets.")
     else:
-        if st.button("ðŸš€ Run Extraction", key="run_puncak"):
+        if st.button("Run Extraction", key="run_puncak"):
             log_box = st.container()
             try:
                 raw_puncak = extract_peak_fare(image_path, gemini_api_key, log=log_box.write)
                 df_puncak = process_raw_data_puncak(raw_puncak)
                 st.session_state["df_puncak"] = df_puncak
-                st.success(f"Extraction finished â€” {len(df_puncak)} rows ready to upload.")
+                st.success(f"Extraction finished — {len(df_puncak)} rows ready to upload.")
             except Exception as e:
-                st.error(f"âŒ Extraction failed: {e}")
+                st.error(f"Extraction failed: {e}")
 
         if "df_puncak" in st.session_state:
             st.dataframe(st.session_state["df_puncak"], use_container_width=True)
-            if st.button("ðŸ“¤ Upload to Google Sheets", key="upload_puncak"):
+            if st.button("Upload to Google Sheets", key="upload_puncak"):
                 ok = upload_to_gsheets(st.session_state["df_puncak"], TAB_PUNCAK)
                 if ok:
-                    st.success(f"ðŸŽ‰ {len(st.session_state['df_puncak'])} rows sent to '{TAB_PUNCAK}'.")
+                    st.success(f"{len(st.session_state['df_puncak'])} rows sent to '{TAB_PUNCAK}'.")
 
 # ------------------------------------------
-# TAB 3 â€” GEMS AUTOMATOR
+# TAB 3 — GEMS AUTOMATOR
 # ------------------------------------------
 with tab_gems:
-    st.subheader("ðŸ’Ž Gems Extraction Automation & Google Slides Sync")
-    st.caption("Upload mission screenshot â†’ extract numbers to GSheets â†’ Auto-generate a Google Slides presentation.")
+    st.subheader("Gems Extraction Automation & Google Slides Sync")
+    st.caption("Upload mission screenshot → extract numbers to GSheets → Auto-generate a Google Slides presentation.")
 
     try:
         sheet_this_week = get_gems_sheet()
-        st.success("âœ… Connected to the Gems Spreadsheet!")
+        st.success("Connected to the Gems Spreadsheet!")
     except Exception as e:
-        st.error(f"âŒ Failed to open the Gems spreadsheet. Error: {e}")
+        st.error(f"Failed to open the Gems spreadsheet. Error: {e}")
         st.stop()
 
     col_a, col_b = st.columns(2)
@@ -1066,9 +1065,9 @@ with tab_gems:
 
     target_cells = get_target_cells(selected_tier, selected_vehicle)
     target_display = [f"{t}-{v}" for t, v in target_cells]
-    st.info(f"ðŸ“Œ **Main GSheets target:** {selected_tier} - {selected_vehicle}\n\n"
-            f"ðŸ”„ **Auto-fill GSheets to:** {', '.join(target_display)}\n\n"
-            f"ðŸ“Š **Slides sync target:** Only the uploaded option (exclusive).")
+    st.info(f"**Main GSheets target:** {selected_tier} - {selected_vehicle}\n\n"
+            f"**Auto-fill GSheets to:** {', '.join(target_display)}\n\n"
+            f"**Slides sync target:** Only the uploaded option (exclusive).")
 
     gems_files = st.file_uploader(
         "Upload Mission Images (batch / multiple at once)",
@@ -1077,7 +1076,7 @@ with tab_gems:
         key="gems_uploader",
     )
 
-    if gems_files and st.button("ðŸš€ Run Extraction & Update Entire System", type="primary", key="run_gems"):
+    if gems_files and st.button("Run Extraction & Update Entire System", type="primary", key="run_gems"):
         temp_dir = "temp_uploads_gems"
         os.makedirs(temp_dir, exist_ok=True)
 
@@ -1089,14 +1088,14 @@ with tab_gems:
         for idx, uploaded_file in enumerate(gems_files):
             filename = uploaded_file.name
 
-            with st.expander(f"âš™ï¸ Processing: {filename}", expanded=True):
+            with st.expander(f"Processing: {filename}", expanded=True):
                 temp_path = os.path.join(temp_dir, filename)
                 with open(temp_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
 
                 img = Image.open(temp_path)
                 if img.width > img.height:
-                    st.write("ðŸ”„ Rotating landscape image upright...")
+                    st.write("Rotating landscape image upright...")
                     img_rotated = img.rotate(90, expand=True)
                     temp_path = os.path.join(temp_dir, "prepared_" + filename)
                     img_rotated.save(temp_path)
@@ -1104,7 +1103,7 @@ with tab_gems:
                 try:
                     result = reader.readtext(temp_path, detail=0)
                 except Exception as e:
-                    st.warning(f"âš ï¸ OCR reading error ({e}). Proceeding to AI...")
+                    st.warning(f"OCR reading error ({e}). Proceeding to AI...")
                     result = []
                 full_text = " ".join(result)
 
@@ -1133,7 +1132,7 @@ with tab_gems:
                 gems_found, rewards_found = [], []
 
                 if not formatted_date:
-                    st.warning("âš ï¸ Date not detected from OCR text. Redirecting to AI to scan the date and data...")
+                    st.warning("Date not detected from OCR text. Redirecting to AI to scan the date and data...")
                     gems_found, rewards_found, ai_date = extract_via_gemini_gems(temp_path, gemini_api_key)
                     
                     if ai_date:
@@ -1141,20 +1140,20 @@ with tab_gems:
                             current_dt_obj = datetime.strptime(ai_date, "%d %b %Y")
                             extracted_day = current_dt_obj.strftime("%A")
                             formatted_date = current_dt_obj.strftime("%d/%m/%Y")
-                            st.write(f"ðŸ“… Date & Day Detected (AI): **{formatted_date} ({extracted_day})**")
+                            st.write(f"Date & Day Detected (AI): **{formatted_date} ({extracted_day})**")
                         except Exception:
                             pass
 
                     if not formatted_date:
-                        st.error("âš ï¸ Date still not detected by AI. File skipped.")
+                        st.error("Date still not detected by AI. File skipped.")
                         continue
                 else:
-                    st.write(f"ðŸ“… Date & Day Detected: **{formatted_date} ({extracted_day})**")
+                    st.write(f"Date & Day Detected: **{formatted_date} ({extracted_day})**")
                     
                     gems_found, rewards_found, _ = extract_gems_rewards(result)
 
                     if len(gems_found) != 3 or len(rewards_found) != 3:
-                        st.warning("âš ï¸ Normal OCR reading failed. Trying AI fallback directly...")
+                        st.warning("Normal OCR reading failed. Trying AI fallback directly...")
                         gems_found, rewards_found, _ = extract_via_gemini_gems(temp_path, gemini_api_key)
 
                 if len(gems_found) == 3 and len(rewards_found) == 3:
@@ -1165,7 +1164,7 @@ with tab_gems:
                         'date_obj': current_dt_obj
                     })
                 else:
-                    st.error("âŒ Number extraction failed completely for this file (even with AI). Please check manually.")
+                    st.error("Number extraction failed completely for this file (even with AI). Please check manually.")
                     continue
 
                 # --- 1. GOOGLE SHEETS UPDATE PROCESS ---
@@ -1201,11 +1200,11 @@ with tab_gems:
                         )
 
                         if cell_tier.lower() == selected_tier.lower() and cell_vehicle.lower() == selected_vehicle.lower():
-                            st.success(f"âœ¨ Data **{cell_tier}-{cell_vehicle}** written to Spreadsheet rows {start_row}-{end_row}.")
+                            st.success(f"Data **{cell_tier}-{cell_vehicle}** written to Spreadsheet rows {start_row}-{end_row}.")
                         else:
-                            st.info(f"âž¡ï¸ Twin data **{cell_tier}-{cell_vehicle}** auto-filled in rows {start_row}-{end_row}.")
+                            st.info(f"Twin data **{cell_tier}-{cell_vehicle}** auto-filled in rows {start_row}-{end_row}.")
                     else:
-                        st.error(f"âŒ Empty rows for {cell_tier}-{cell_vehicle} on {extracted_day} not found.")
+                        st.error(f"Empty rows for {cell_tier}-{cell_vehicle} on {extracted_day} not found.")
 
             progress_bar.progress((idx + 1) / len(gems_files))
 
@@ -1213,10 +1212,10 @@ with tab_gems:
         # --- 2. GOOGLE SLIDES UPDATE PROCESS ---
         if slides_payload_list:
             st.divider()
-            st.subheader("ðŸ“Š Starting Google Slides Presentation Sync...")
+            st.subheader("Starting Google Slides Presentation Sync...")
             log_slides = st.container()
             try:
-                log_slides.write("ðŸ“ **Processing First Slide Template...**")
+                log_slides.write("**Processing First Slide Template...**")
                 uploaded_ids, new_presentation_id = push_to_google_slides(
                     slide_id=GEMS_SLIDES_ID,
                     tier=selected_tier,
@@ -1225,7 +1224,7 @@ with tab_gems:
                     log_box=log_slides
                 )
                 
-                log_slides.write("ðŸ“ **Processing Second Slide Template...**")
+                log_slides.write("**Processing Second Slide Template...**")
                 uploaded_ids_2, new_presentation_id_2 = push_to_google_slides(
                     slide_id=GEMS_SLIDES_ID_2,
                     tier=selected_tier,
@@ -1234,20 +1233,20 @@ with tab_gems:
                     log_box=log_slides
                 )
                 
-                st.success("ðŸŽ‰ Both Google Slides copies created & updated successfully!")
-                st.info(f"ðŸ”— Result Presentation Link (Template 1): [Buka Google Slides](https://docs.google.com/presentation/d/{new_presentation_id}/edit)")
-                st.info(f"ðŸ”— Result Presentation Link (Template 2): [Buka Google Slides](https://docs.google.com/presentation/d/{new_presentation_id_2}/edit)")
+                st.success("Both Google Slides copies created & updated successfully!")
+                st.info(f"Result Presentation Link (Template 1): [Open Google Slides](https://docs.google.com/presentation/d/{new_presentation_id}/edit)")
+                st.info(f"Result Presentation Link (Template 2): [Open Google Slides](https://docs.google.com/presentation/d/{new_presentation_id_2}/edit)")
             except Exception as slide_err:
-                st.error(f"âš ï¸ Failed to update Google Slides: {slide_err}")
+                st.error(f"Failed to update Google Slides: {slide_err}")
         
         st.balloons()
-        st.success("ðŸŽ‰ The full Sheets data automation and Slides visualization pipeline is complete!")
+        st.success("The full Sheets data automation and Slides visualization pipeline is complete!")
 
 # ------------------------------------------
-# TAB 4 â€” COMPARE THIS WEEK VS LAST WEEK
+# TAB 4 — COMPARE THIS WEEK VS LAST WEEK
 # ------------------------------------------
 with tab_compare:
-    st.subheader("ðŸ”„ Compare This Week vs Last Week")
+    st.subheader("Compare This Week vs Last Week")
     st.caption(
         "Upload this week's & last week's Greentable images. Both will be extracted "
         "(using the same Bonus Mingguan & Tambang Puncak logic), then compared "
@@ -1256,14 +1255,14 @@ with tab_compare:
 
     col_this, col_last = st.columns(2)
     with col_this:
-        st.markdown("**ðŸ“… This Week Image**")
+        st.markdown("**This Week Image**")
         img_this_file = st.file_uploader(
             "Upload this week's image", type=["jpg", "jpeg", "png"], key="compare_this_week_uploader"
         )
         if img_this_file is not None:
             st.image(img_this_file, caption="Preview This Week", width=280)
     with col_last:
-        st.markdown("**ðŸ“† Last Week Image**")
+        st.markdown("**Last Week Image**")
         img_last_file = st.file_uploader(
             "Upload last week's image", type=["jpg", "jpeg", "png"], key="compare_last_week_uploader"
         )
@@ -1271,10 +1270,10 @@ with tab_compare:
             st.image(img_last_file, caption="Preview Last Week", width=280)
 
     if not gemini_api_key:
-        st.warning("âš ï¸ This module needs the Gemini API Key in the sidebar (used for Tambang Puncak & Bonus Mingguan fallback).")
+        st.warning("This module needs `GEMINI_API_KEY` in secrets (used for Tambang Puncak & Bonus Mingguan fallback).")
 
     run_compare_disabled = not (img_this_file and img_last_file and gemini_api_key)
-    if st.button("ðŸš€ Extract & Compare", key="run_compare", disabled=run_compare_disabled):
+    if st.button("Extract & Compare", key="run_compare", disabled=run_compare_disabled):
         compare_temp_dir = "temp_uploads_compare"
         os.makedirs(compare_temp_dir, exist_ok=True)
 
@@ -1287,28 +1286,28 @@ with tab_compare:
             f.write(img_last_file.getbuffer())
 
         try:
-            with st.status("â³ Extracting This Week image...", expanded=True) as status_this:
+            with st.status("Extracting This Week image...", expanded=True) as status_this:
                 mingguan_this, harian_this = extract_mingguan(reader, path_this, gemini_api_key, log=st.write)
                 raw_puncak_this = extract_peak_fare(path_this, gemini_api_key, log=st.write)
                 df_puncak_this = process_raw_data_puncak(raw_puncak_this)
-                status_this.update(label="âœ… This Week extraction complete.", state="complete")
+                status_this.update(label="This Week extraction complete.", state="complete")
 
-            with st.status("â³ Extracting Last Week image...", expanded=True) as status_last:
+            with st.status("Extracting Last Week image...", expanded=True) as status_last:
                 mingguan_last, harian_last = extract_mingguan(reader, path_last, gemini_api_key, log=st.write)
                 raw_puncak_last = extract_peak_fare(path_last, gemini_api_key, log=st.write)
                 df_puncak_last = process_raw_data_puncak(raw_puncak_last)
-                status_last.update(label="âœ… Last Week extraction complete.", state="complete")
+                status_last.update(label="Last Week extraction complete.", state="complete")
 
             report_text = build_full_comparison_report(
                 mingguan_this, harian_this, df_puncak_this,
                 mingguan_last, harian_last, df_puncak_last,
             )
             st.session_state["compare_report_text"] = report_text
-            st.success("ðŸŽ‰ Comparison done! Report ready to copy below.")
+            st.success("Comparison done! Report ready to copy below.")
         except Exception as e:
-            st.error(f"âŒ Failed to process comparison: {e}")
+            st.error(f"Failed to process comparison: {e}")
 
     if "compare_report_text" in st.session_state:
         st.divider()
-        st.markdown("### ðŸ“‹ Copy-Ready Message")
+        st.markdown("### Copy-Ready Message")
         st.code(st.session_state["compare_report_text"], language="markdown")
