@@ -1,0 +1,5 @@
+streamlit
+selenium
+gspread
+pandas
+webdriver-manager

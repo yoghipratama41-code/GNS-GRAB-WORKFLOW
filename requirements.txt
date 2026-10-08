@@ -1,0 +1,14 @@
+streamlit>=1.36.0
+pandas
+Pillow
+numpy
+easyocr
+gspread
+requests
+google-auth
+google-auth-oauthlib
+google-api-python-client
+google-generativeai
+opencv-python-headless
+selenium
+webdriver-manager

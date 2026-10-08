@@ -1,0 +1,9 @@
+easyocr
+gspread
+requests
+pandas
+streamlit
+Pillow
+google-auth
+google-generativeai
+opencv-python-headless

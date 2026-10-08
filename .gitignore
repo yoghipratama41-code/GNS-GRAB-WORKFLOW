@@ -1,0 +1,11 @@
+# Secrets: Streamlit Cloud reads them from the app settings, not from the repo.
+**/.streamlit/secrets.toml
+bached_secret.txt
+*.zip
+
+# Runtime artifacts
+__pycache__/
+*.pyc
+temp_uploads/
+temp_uploads_gems/
+.venv/
