@@ -792,17 +792,12 @@ Return ONLY a raw JSON object: {"date": "DD MMM YYYY", "gems": [g1, g2, g3], "re
         return [], [], None
 
 def get_target_cells(tier, vehicle):
-    tier_l = tier.lower()
     vehicle_l = vehicle.lower()
     if vehicle_l in ["e-bike", "bicycle"]:
         same_tier_group = ["E-bike", "Bicycle"]
     else:
         same_tier_group = ["Walker"] if vehicle_l == "walker" else [vehicle.capitalize()]
     targets = [(tier, v) for v in same_tier_group]
-    if tier_l in ["diamond", "sapphire"] and vehicle_l != "walker":
-        other_tier = "Sapphire" if tier_l == "diamond" else "Diamond"
-        for v in same_tier_group:
-            targets.append((other_tier, v))
     seen = set()
     unique_targets = []
     for t in targets:
