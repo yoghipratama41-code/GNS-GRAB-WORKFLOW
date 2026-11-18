@@ -9,3 +9,4 @@ __pycache__/
 temp_uploads/
 temp_uploads_gems/
 .venv/
+rain-notifier-main/data/

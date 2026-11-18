@@ -1,0 +1,99 @@
+# Klang Valley Rain Notifier — zones + thresholds config.
+#
+# Zone membership source of truth: data/zones.csv (loaded by scripts/import_zones.py).
+# Sample points are seeded from CSV addresses by that script; the centroid below is only
+# a fallback for a zone with no usable CSV rows.
+
+timezone: Asia/Kuala_Lumpur
+
+# CSV label -> official zone name. Only obvious mappings live here; the importer also
+# auto-maps (a) case-insensitive exact matches and (b) labels contained in exactly one
+# official zone name. Everything else is reported as unmapped — add aliases here yourself.
+aliases:
+  Kd: Kota Damansara
+  Pj: Petaling Jaya
+
+thresholds:
+  watch_probability_pct: 60   # WATCH: >= 60% rain chance within watch_horizon_hours
+  watch_horizon_hours: 2
+  raining_mm_h: 0.5           # RAINING: any sample point >= 0.5 mm/h
+  heavy_mm_h: 7.5             # HEAVY: any sample point >= 7.5 mm/h (or MET heavy rain warning)
+  clearing_mm_h: 0.1          # below this counts as "dry"
+  clearing_minutes: 30        # dry this long while RAINING/HEAVY -> CLEARING
+  confirm_readings: 2         # consecutive readings required to enter RAINING/HEAVY
+  stale_gap_minutes: 20       # dry data gap longer than this restarts the clearing clock
+  cooldown_minutes: 30        # no re-alert for the same zone + state within this
+  merge_window_minutes: 5     # max time an alert may wait to be merged (spec: 5 min)
+  merge_min_zones: 3          # 3+ zone changes in the window -> one combined message
+  merge_grace_seconds: 60     # how long a lone alert waits for company before sending
+  merge_debounce_seconds: 10  # quiet period before a 3+ batch goes out as one message
+
+# Active hours in MYT; null = always on. Outside them only HEAVY alerts go out.
+active_hours: null            # example: {start: "10:00", end: "22:00"}
+
+poll_interval_seconds:
+  open_meteo: 600             # 10 min (spec 4B)
+  met_warning: 300            # 5 min (spec 4A)
+
+state_colors:
+  CLEAR: "#7C3AED"            # purple
+  WATCH: "#F59E0B"            # orange
+  RAINING: "#EF4444"          # red
+  HEAVY: "#7F1D1D"            # dark red
+  CLEARING: "#3B82F6"         # blue
+
+# Geocodes outside this box are discarded by the importer (spec 3a).
+klang_valley_bbox: {min_lat: 2.85, max_lat: 3.55, min_lon: 101.30, max_lon: 102.10}
+
+# met_districts are real MET Malaysia location names (verified against the live
+# /weather/forecast location list during the build). "TODO: verify" items are guesses.
+zones:
+  - name: Ampang - Gombak
+    met_districts: [Ampang, Gombak, "Batu Caves"]
+    centroid: [3.2000, 101.7400]
+    points: [{name: P1, lat: 3.071583, lon: 101.583066}, {name: P2, lat: 3.172547, lon: 101.743625}, {name: P3, lat: 3.193494, lon: 101.612762}]
+
+  - name: Ampang - Hulu Langat
+    met_districts: [Hulu Langat, Cheras, Kajang]
+    centroid: [3.1000, 101.7900]
+    points: [{name: P1, lat: 3.104033, lon: 101.758021}, {name: P2, lat: 3.124658, lon: 101.717933}, {name: P3, lat: 3.146057, lon: 101.764049}]
+
+  - name: Kota Damansara
+    met_districts: [Damansara, Petaling]
+    centroid: [3.1560, 101.5890]
+    points: [{name: P1, lat: 3.108716, lon: 101.661514}, {name: P2, lat: 3.146223, lon: 101.608555}, {name: P3, lat: 3.164025, lon: 101.577613}]
+
+  - name: Klang
+    met_districts: [Klang, "Pelabuhan Klang"]
+    centroid: [3.0449, 101.4455]
+    points: [{name: P1, lat: 3.007225, lon: 101.436870}, {name: P2, lat: 3.015106, lon: 101.708109}, {name: P3, lat: 3.112303, lon: 101.566470}]
+
+  - name: KLCC
+    met_districts: ["Kuala Lumpur", "Bukit Bintang"]
+    centroid: [3.1579, 101.7116]
+    points: [{name: P1, lat: 3.134327, lon: 101.687417}, {name: P2, lat: 3.151185, lon: 101.704673}]
+
+  - name: Petaling Jaya
+    met_districts: [Petaling, "Petaling Jaya"]
+    centroid: [3.1073, 101.6067]
+    points: [{name: P1, lat: 3.015106, lon: 101.708109}, {name: P2, lat: 3.041644, lon: 101.639516}, {name: P3, lat: 3.119557, lon: 101.615337}]
+
+  - name: Puchong
+    met_districts: [Petaling, Sepang]  # TODO: verify — Puchong is said to straddle Petaling/Sepang
+    centroid: [3.0300, 101.6170]
+    points: [{name: P1, lat: 2.992875, lon: 101.606826}, {name: P2, lat: 3.038386, lon: 101.675705}, {name: P3, lat: 3.043446, lon: 101.599915}]
+
+  - name: Sentul
+    met_districts: [Sentul, Kepong, "Kuala Lumpur"]  # Kepong edge per spec table
+    centroid: [3.1870, 101.6930]
+    points: [{name: P1, lat: 3.088288, lon: 101.643168}, {name: P2, lat: 3.204911, lon: 101.719109}]
+
+  - name: Setapak
+    met_districts: [Setapak, "Kuala Lumpur"]
+    centroid: [3.2000, 101.7230]
+    points: [{name: P1, lat: 3.171443, lon: 101.751575}, {name: P2, lat: 3.206007, lon: 101.705753}, {name: P3, lat: 3.209271, lon: 101.748346}]
+
+  - name: Sungai Buloh
+    met_districts: [Damansara, Kepong, Petaling]  # TODO: verify — no "Sungai Buloh" MET district
+    centroid: [3.2070, 101.5800]
+    points: [{name: P1, lat: 2.996660, lon: 101.619783}, {name: P2, lat: 3.096223, lon: 101.597364}, {name: P3, lat: 3.212446, lon: 101.519915}]

@@ -3,7 +3,7 @@ import streamlit as st
 st.set_page_config(page_title="GNS Automation Hub", layout="wide")
 
 st.title("GNS Automation Hub")
-st.caption("Four internal tools in one repo. Open one from this list or from the sidebar.")
+st.caption("Five internal tools in one repo. Open one from this list or from the sidebar.")
 
 st.write("")
 
@@ -35,6 +35,12 @@ TOOLS = [
         "pages/4_Weekly_Presentation.py",
         "Fills the weekly report template placeholders (week range, Shopee and spending blocks) "
         "into a Google Slides deck.",
+    ),
+    (
+        "Klang Valley Rain Notifier",
+        "pages/5_Rain_Notifier.py",
+        "Live 10-zone weather state machine (MET Malaysia + Open-Meteo): watch/raining/heavy "
+        "states, when rain is coming, alerts log, 24h history — updates automatically.",
     ),
 ]
 

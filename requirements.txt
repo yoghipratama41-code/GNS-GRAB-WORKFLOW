@@ -12,3 +12,8 @@ google-generativeai
 opencv-python-headless
 selenium
 webdriver-manager
+# Klang Valley Rain Notifier (pages/5_Rain_Notifier.py)
+apscheduler
+httpx
+PyYAML
+python-dotenv
