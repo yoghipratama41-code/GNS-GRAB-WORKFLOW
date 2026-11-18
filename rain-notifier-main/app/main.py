@@ -26,7 +26,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from .config import Config, load_config
 from .db.repo import Repo
-from .engine.state_machine import AlertCoordinator, AlertItem, ZoneFSM, ZoneReading
+from .engine.state_machine import AlertCoordinator, AlertItem, STATES, ZoneFSM, ZoneReading
 from .notify.formatter import format_alert, format_combined
 from .sources.base import Observation
 from .sources.met_api import MetSource
@@ -82,6 +82,12 @@ class RainApp:
         self.met = MetSource()
 
         self.fsms = {z.name: ZoneFSM(z.name, cfg.thresholds) for z in cfg.zones}
+        # Resume from the last recorded event: a process restart must not start
+        # over at CLEAR (it would re-fire WATCH alerts for zones already wet).
+        for zone_name, ev in self.repo.latest_states().items():
+            if zone_name in self.fsms and ev.get("state") in STATES:
+                self.fsms[zone_name].state = ev["state"]
+                log.info("resumed %s at %s (from last recorded event)", zone_name, ev["state"])
         self.coordinator = AlertCoordinator(
             th=cfg.thresholds,
             send=self._send_alerts,
@@ -322,6 +328,14 @@ class RainApp:
             self.poll_open_meteo()
 
         scheduler.start()
+        # Fresh DB (first run or ephemeral cloud disk): RAINING needs 2 readings,
+        # and the second poll would only come after a full interval. Pull one
+        # confirm poll to +60s so a wet zone settles in ~1 min, not 10.
+        scheduler.add_job(
+            self.poll_open_meteo, "date",
+            run_date=datetime.now(MYT) + timedelta(seconds=60),
+            id="confirm", replace_existing=True,
+        )
         return scheduler
 
     def run(self) -> None:
